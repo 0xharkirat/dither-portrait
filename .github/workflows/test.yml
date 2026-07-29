@@ -1,0 +1,70 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --quiet "pillow>=10"
+      - run: python -m unittest discover -s tests -v
+
+  action:
+    # Runs the action the way a consumer would, so action.yml itself is covered rather
+    # than only the Python underneath it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make a fixture photo
+        run: |
+          python -m pip install --quiet "pillow>=10"
+          python - <<'PY'
+          import sys; sys.path.insert(0, "tests")
+          from test_portrait import fixture
+          fixture(400, 400).save("fixture.png")
+          PY
+
+      - name: Run the action
+        id: first
+        uses: ./
+        with:
+          photo: fixture.png
+          out-dir: out
+          grid: "64"
+          frames: "8"
+
+      - name: Check what it produced
+        run: |
+          set -euo pipefail
+          test -f out/portrait-dark.svg
+          test -f out/portrait-light.svg
+          python -c "import xml.dom.minidom as m; m.parse('out/portrait-dark.svg')"
+          grep -q 'prefers-reduced-motion' out/portrait-dark.svg
+          test "$(grep -o 'id="p[0-9]*"' out/portrait-dark.svg | wc -l)" -eq 8
+          echo "outputs.files = ${{ steps.first.outputs.files }}"
+
+      - name: Run it again and require identical bytes
+        uses: ./
+        with:
+          photo: fixture.png
+          out-dir: out2
+          grid: "64"
+          frames: "8"
+
+      - name: Determinism
+        run: |
+          diff out/portrait-dark.svg out2/portrait-dark.svg
+          diff out/portrait-light.svg out2/portrait-light.svg
+          echo "identical across runs"

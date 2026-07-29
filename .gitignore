@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+out/
+out2/
+fixture.png
+portrait-*.svg

@@ -1,0 +1,104 @@
+name: "Dither Portrait"
+description: "Turn a photo into an animated dithered SVG for your GitHub profile README."
+author: "Hark Singh"
+
+branding:
+  icon: "user"
+  color: "gray-dark"
+
+inputs:
+  username:
+    description: "GitHub user whose avatar to dither. Defaults to the repository owner."
+    required: false
+    default: ${{ github.repository_owner }}
+  photo:
+    description: "Path to a local image. Overrides `username` when set."
+    required: false
+  out-dir:
+    description: "Directory to write the SVGs into."
+    required: false
+    default: "."
+  prefix:
+    description: "Filename prefix, so output is <prefix>-dark.svg and <prefix>-light.svg."
+    required: false
+    default: "portrait"
+  themes:
+    description: "Comma separated: dark, light, or both."
+    required: false
+    default: "dark,light"
+  size:
+    description: "Rendered width in pixels."
+    required: false
+    default: "330"
+  max-height:
+    description: "Cap on rendered height, for tall photos."
+    required: false
+    default: "520"
+  grid:
+    description: "Dither resolution in cells across. Drives file size; 120 is a good start."
+    required: false
+    default: "120"
+  frames:
+    description: "Animation frames. More is smoother and bigger."
+    required: false
+    default: "16"
+  duration:
+    description: "Seconds per animation loop."
+    required: false
+    default: "2.8"
+  motion:
+    description: "water (coherent ripples), shimmer (per-cell jitter), or none (static)."
+    required: false
+    default: "water"
+  ink-dark:
+    description: "Ink colour used on the dark-theme variant."
+    required: false
+    default: "#c9d1d9"
+  ink-light:
+    description: "Ink colour used on the light-theme variant."
+    required: false
+    default: "#24292f"
+  radius:
+    description: "Corner radius in pixels."
+    required: false
+    default: "14"
+
+outputs:
+  files:
+    description: "Space separated list of the SVG files written."
+    value: ${{ steps.render.outputs.files }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Pillow
+      shell: bash
+      run: python -m pip install --quiet --disable-pip-version-check "pillow>=10"
+
+    # Inputs go through the environment rather than the command line. Composite actions
+    # do not expose inputs as INPUT_* the way JavaScript actions do, and building an
+    # argument string in YAML breaks on empty optional values.
+    - name: Render portrait
+      id: render
+      shell: bash
+      env:
+        DITHER_USERNAME: ${{ inputs.username }}
+        DITHER_PHOTO: ${{ inputs.photo }}
+        DITHER_OUT_DIR: ${{ inputs.out-dir }}
+        DITHER_PREFIX: ${{ inputs.prefix }}
+        DITHER_THEMES: ${{ inputs.themes }}
+        DITHER_SIZE: ${{ inputs.size }}
+        DITHER_MAX_HEIGHT: ${{ inputs.max-height }}
+        DITHER_GRID: ${{ inputs.grid }}
+        DITHER_FRAMES: ${{ inputs.frames }}
+        DITHER_DURATION: ${{ inputs.duration }}
+        DITHER_MOTION: ${{ inputs.motion }}
+        DITHER_INK_DARK: ${{ inputs.ink-dark }}
+        DITHER_INK_LIGHT: ${{ inputs.ink-light }}
+        DITHER_RADIUS: ${{ inputs.radius }}
+        GITHUB_TOKEN: ${{ github.token }}
+      run: python "$GITHUB_ACTION_PATH/portrait.py"
