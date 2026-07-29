@@ -79,6 +79,7 @@ python portrait.py --photo me.jpg --motion shimmer --frames 12
 | `ink-dark` | `#c9d1d9` | ink colour on the dark variant |
 | `ink-light` | `#24292f` | ink colour on the light variant |
 | `radius` | `14` | corner radius in px |
+| `invert` | `false` | swap which tones become ink |
 
 Output `files` lists the paths written.
 
@@ -96,13 +97,27 @@ ripples read as a wobble.
 
 ## What photographs well
 
-The dither has two tones and nothing else, so it lives or dies on separation.
+The dither has two tones and nothing else, so it lives or dies on separation. I ran
+the defaults over 18 well-known GitHub avatars to find out where they hold up.
 
-- A plain background, so the subject has an edge to sit against
-- Strong, even light on the face
-- Head and shoulders rather than full length, at this size
+**Best:** a dark background with a lit face. Those come out looking like the portrait
+was made for the medium.
 
-A busy background dithers to mud. Crop tightly before reaching for a higher `grid`.
+**Usually fine:** any photo whose subject carries its own light and dark structure,
+even on a bright background. Hair, beard, glasses, and clothing all give the dither
+edges to hang on.
+
+**Struggles:** an evenly lit face on a mid-grey studio backdrop. There is no tonal
+edge between subject and background, so both land on the same side of the threshold
+and the result reads as mush. A busy background does the same thing.
+
+Roughly a third of the avatars I tested produced a solid block on the dark variant.
+If yours does, set `invert: true` and compare. It is a switch rather than something
+the tool decides, because I tried auto-detecting it from background brightness and it
+made other portraits worse: a bright-background photo whose subject has strong dark
+structure still reads better under the default.
+
+Cropping tightly helps more than raising `grid`.
 
 ## File size
 

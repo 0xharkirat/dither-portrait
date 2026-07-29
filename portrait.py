@@ -56,6 +56,13 @@ WAVES = [
 # a solid pale blob.
 POLARITY = {"dark": 1, "light": 0}
 
+# Whether that default suits a photo depends on the subject, not the background. A
+# sweep over 18 real avatars found roughly a third where the dark variant turns into a
+# solid block, so `invert` swaps which tone becomes ink. It is deliberately a switch
+# rather than a guess: auto-detecting from background brightness was tried and made
+# some portraits worse, because a bright-background photo whose subject carries its own
+# dark structure still reads better under the default.
+
 DEFAULTS = {
     "size": 330,
     "max_height": 520,
@@ -219,7 +226,8 @@ def svg(frames, w, h, duration, radius):
 # --- build ------------------------------------------------------------------
 
 def build(img, size=330, max_height=520, grid=120, frames=16, duration=2.8,
-          motion="water", themes=("dark", "light"), inks=None, radius=14):
+          motion="water", themes=("dark", "light"), inks=None, radius=14,
+          invert=False):
     """Returns {theme: svg text}. Pure: same inputs, same bytes, every time."""
     if motion == "none":
         frames = 1
@@ -243,7 +251,8 @@ def build(img, size=330, max_height=520, grid=120, frames=16, duration=2.8,
         shaken = [[px[y][x] + field[y][x] for x in range(grid)] for y in range(grid_h)]
         bits = dither(shaken, grid, grid_h)
         for name in themes:
-            encoded[name].append(encode(bits, grid, grid_h, POLARITY[name], inks[name]))
+            bit = 1 - POLARITY[name] if invert else POLARITY[name]
+            encoded[name].append(encode(bits, grid, grid_h, bit, inks[name]))
 
     return {name: svg(encoded[name], box_w, box_h, duration, radius) for name in themes}
 
@@ -279,6 +288,9 @@ def parse_args(argv=None):
     p.add_argument("--ink-light", default=env_default("DITHER_INK_LIGHT", d["ink_light"]))
     p.add_argument("--radius", type=int,
                    default=int(env_default("DITHER_RADIUS", d["radius"])))
+    p.add_argument("--invert", action="store_true",
+                   default=env_default("DITHER_INVERT", "").lower() in ("1", "true", "yes"),
+                   help="swap which tones become ink; try it if the result looks solid")
     return p.parse_args(argv)
 
 
@@ -295,7 +307,7 @@ def main(argv=None):
         load_source(args.photo, args.username),
         size=args.size, max_height=args.max_height, grid=args.grid,
         frames=args.frames, duration=args.duration, motion=args.motion,
-        themes=themes, radius=args.radius,
+        themes=themes, radius=args.radius, invert=args.invert,
         inks={"dark": args.ink_dark, "light": args.ink_light},
     )
 

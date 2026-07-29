@@ -101,6 +101,30 @@ class TestDeterminism(unittest.TestCase):
         self.assertGreater(len(set(payloads)), 4, "frames are barely changing")
 
 
+class TestInvert(unittest.TestCase):
+    """Roughly a third of a real-avatar sweep produced a solid block on the dark
+    variant. Auto-detecting from background brightness was tried and made other
+    portraits worse, so the choice is exposed instead of guessed."""
+
+    def test_invert_changes_output(self):
+        normal = portrait.build(fixture(), grid=40, frames=4)["dark"]
+        flipped = portrait.build(fixture(), grid=40, frames=4, invert=True)["dark"]
+        self.assertNotEqual(normal, flipped)
+
+    def test_invert_is_still_deterministic(self):
+        a = portrait.build(fixture(), grid=40, frames=4, invert=True)["dark"]
+        b = portrait.build(fixture(), grid=40, frames=4, invert=True)["dark"]
+        self.assertEqual(a, b)
+
+    def test_invert_swaps_ink_and_transparency(self):
+        """Whichever bit is ink, the other must stay transparent, or the portrait
+        gains an opaque rectangle."""
+        for flag in (False, True):
+            with self.subTest(invert=flag):
+                text = portrait.build(fixture(), grid=32, frames=2, invert=flag)["dark"]
+                self.assertNotIn("<rect", text.split("<clipPath")[0])
+
+
 class TestMotionModes(unittest.TestCase):
     def test_none_emits_one_static_frame(self):
         text = portrait.build(fixture(), grid=32, motion="none")["dark"]

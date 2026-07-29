@@ -62,6 +62,13 @@ inputs:
     description: "Corner radius in pixels."
     required: false
     default: "14"
+  invert:
+    description: >
+      Swap which tones become ink. Try it if the result looks like a solid block.
+      Whether the default suits a photo depends on the subject, not the background,
+      so this is a switch rather than something the tool guesses.
+    required: false
+    default: "false"
 
 outputs:
   files:
@@ -100,5 +107,6 @@ runs:
         DITHER_INK_DARK: ${{ inputs.ink-dark }}
         DITHER_INK_LIGHT: ${{ inputs.ink-light }}
         DITHER_RADIUS: ${{ inputs.radius }}
+        DITHER_INVERT: ${{ inputs.invert }}
         GITHUB_TOKEN: ${{ github.token }}
       run: python "$GITHUB_ACTION_PATH/portrait.py"
