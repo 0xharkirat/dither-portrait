@@ -1,23 +1,61 @@
 # dither-portrait
 
+<a href="https://0xharkirat.github.io/dither-portrait/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/example-dark.svg">
+    <img alt="An animated dithered portrait, its grain rippling while the face stays still" src="docs/example-light.svg" width="300">
+  </picture>
+</a>
+
+[![test](https://github.com/0xharkirat/dither-portrait/actions/workflows/test.yml/badge.svg)](https://github.com/0xharkirat/dither-portrait/actions/workflows/test.yml)
+
 Turn a photo into an animated dithered SVG for your GitHub profile README.
 
-One-bit Floyd-Steinberg dither, with the grain animated by a field of slow travelling
-waves. The picture never moves; only the dots that sit near the dither threshold flip,
+## Table of contents
+
+- [Background](#background)
+- [Install](#install)
+- [Usage](#usage)
+- [Inputs](#inputs)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Background
+
+A 1-bit Floyd-Steinberg dither, with the grain animated by a field of slow travelling
+waves. The picture never moves. Only the dots sitting near the dither threshold flip,
 so it reads as a surface rather than as static.
 
 Light and dark variants are generated with opposite polarity, the background is
-transparent, and the animation stops for anyone who has asked their system to reduce
-motion.
+transparent, and the animation stops for anyone whose system asks for reduced motion.
 
-## Use it
+Output is deterministic, so a scheduled run commits nothing unless the photo changed.
+
+## Install
+
+No installation. Reference the action from a workflow:
+
+```yaml
+- uses: 0xharkirat/dither-portrait@v1
+```
+
+To run it locally, install [Pillow](https://pypi.org/project/pillow/):
+
+```bash
+pip install pillow
+```
+
+## Usage
+
+Add this workflow. It rebuilds the portrait and commits it when the avatar changes:
 
 ```yaml
 name: portrait
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 4 * * 0"      # weekly is plenty; the output only changes when you do
+    - cron: "0 4 1 * *"
 
 permissions:
   contents: write
@@ -37,11 +75,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add portrait-dark.svg portrait-light.svg
-          git commit -m "chore: refresh portrait" || echo "no change"
+          git commit -m "chore: refresh portrait" || echo "No change"
           git push
 ```
 
-Then put it in your README:
+Then embed the result in your README:
 
 ```html
 <picture>
@@ -50,105 +88,60 @@ Then put it in your README:
 </picture>
 ```
 
-The commit step is deliberately yours rather than built in, so you can send the files
-to a branch, an artifact, or nowhere at all.
+The commit step is yours rather than built in, so you can send the files to a branch,
+an artifact, or nowhere at all.
 
-## Locally
+### CLI
 
 ```bash
-pip install pillow
 python portrait.py --username octocat
 python portrait.py --photo me.jpg --motion shimmer --frames 12
 ```
 
 ## Inputs
 
-| input | default | what it does |
+Every input is optional.
+
+| Input | Default | Description |
 | --- | --- | --- |
-| `username` | repo owner | whose GitHub avatar to dither |
-| `photo` | | a local image; overrides `username` |
-| `out-dir` | `.` | where to write |
-| `prefix` | `portrait` | output is `<prefix>-dark.svg`, `<prefix>-light.svg` |
-| `themes` | `dark,light` | emit one or both |
-| `size` | `330` | rendered width in px |
-| `max-height` | `520` | cap for tall photos |
-| `grid` | `120` | dither cells across; the main size lever |
-| `frames` | `16` | more is smoother and bigger |
-| `duration` | `2.8` | seconds per loop |
+| `username` | repository owner | GitHub user whose avatar to dither |
+| `photo` | | Path to a local image. Overrides `username` |
+| `out-dir` | `.` | Directory to write into |
+| `prefix` | `portrait` | Output is `<prefix>-dark.svg` and `<prefix>-light.svg` |
+| `themes` | `dark,light` | Which variants to emit |
+| `size` | `330` | Rendered width in pixels |
+| `max-height` | `520` | Cap on rendered height, for tall photos |
+| `grid` | `120` | Dither cells across. The main size lever |
+| `frames` | `16` | Animation frames. More is smoother and larger |
+| `duration` | `2.8` | Seconds per loop |
 | `motion` | `water` | `water`, `shimmer`, or `none` |
-| `ink-dark` | `#c9d1d9` | ink colour on the dark variant |
-| `ink-light` | `#24292f` | ink colour on the light variant |
-| `radius` | `14` | corner radius in px |
-| `invert` | `false` | swap which tones become ink |
+| `ink-dark` | `#c9d1d9` | Ink color on the dark variant |
+| `ink-light` | `#24292f` | Ink color on the light variant |
+| `radius` | `14` | Corner radius in pixels |
+| `invert` | `false` | Swap which tones become ink |
 
 Output `files` lists the paths written.
 
-## Motion
+## Documentation
 
-**`water`** is the default. Four sine waves displace the dither threshold, two
-travelling one way and one against them. The interference is what makes it read as a
-surface. Independent per-cell noise looks like television static, and slowing that
-down turns it into a strobe rather than calming it.
+- [Choose a photo that dithers well](docs/choosing-a-photo.md) covers what to feed it
+  and what to change when the result looks wrong.
+- [How it works](docs/how-it-works.md) explains the constraints behind the design.
+- The [gallery](https://0xharkirat.github.io/dither-portrait/) shows the defaults
+  across 19 real avatars.
 
-**`shimmer`** is that per-cell jitter, kept because it suits hard-edged graphics where
-ripples read as a wobble.
+## Contributing
 
-**`none`** emits a single static frame.
+Open an issue for a question or a bug. Pull requests are welcome.
 
-## What photographs well
+Run the tests before opening one:
 
-The dither has two tones and nothing else, so it lives or dies on separation. I ran
-the defaults over 18 well-known GitHub avatars to find out where they hold up.
+```bash
+python -m unittest discover -s tests -v
+```
 
-**Best:** a dark background with a lit face. Those come out looking like the portrait
-was made for the medium.
+Any change must keep the output deterministic. The test suite and CI both enforce it.
 
-**Usually fine:** any photo whose subject carries its own light and dark structure,
-even on a bright background. Hair, beard, glasses, and clothing all give the dither
-edges to hang on.
+## License
 
-**Struggles:** an evenly lit face on a mid-grey studio backdrop. There is no tonal
-edge between subject and background, so both land on the same side of the threshold
-and the result reads as mush. A busy background does the same thing.
-
-Roughly a third of the avatars I tested produced a solid block on the dark variant.
-If yours does, set `invert: true` and compare. It is a switch rather than something
-the tool decides, because I tried auto-detecting it from background brightness and it
-made other portraits worse: a bright-background photo whose subject has strong dark
-structure still reads better under the default.
-
-Cropping tightly helps more than raising `grid`.
-
-## File size
-
-Roughly 40 KB per theme at the defaults. It scales with `grid` squared and with
-`frames`, so `grid: 200` and `frames: 24` lands near 170 KB per theme, which is slow
-in a README. The tool warns above 150 KB.
-
-## How it works
-
-GitHub serves README images through `<img>`, which blocks scripts and external
-fetches but does run CSS. So each frame is a 1-bit PNG embedded as a `data:` URI, and
-a CSS keyframe with `steps(1, end)` cycles them. Hard cuts, no crossfade, because
-blending two dithers just makes grey.
-
-Every frame is `opacity: 0` by default with the animation revealing one at a time,
-which means disabling the animation alone would leave a blank image. The
-reduced-motion rule pins the first frame visible as well.
-
-## Determinism
-
-The same photo and settings always produce byte-identical output. No random numbers,
-no clock, no dependence on iteration order. That is what makes it safe on a schedule:
-the workflow will not commit a change unless something actually changed. There is a
-test for it, and the CI job runs the action twice and diffs the results.
-
-## Prior art
-
-The dithering idea is not new. [Dithering Studio](https://ditheringstudio.com) is a
-good place to explore the parameters by hand. This packages one particular treatment,
-animated and sized for a README.
-
-## Licence
-
-MIT. The code is mine; your photo is yours.
+MIT © Harkirat Singh

@@ -51,11 +51,11 @@ inputs:
     required: false
     default: "water"
   ink-dark:
-    description: "Ink colour used on the dark-theme variant."
+    description: "Ink color used on the dark-theme variant."
     required: false
     default: "#c9d1d9"
   ink-light:
-    description: "Ink colour used on the light-theme variant."
+    description: "Ink color used on the light-theme variant."
     required: false
     default: "#24292f"
   radius:
