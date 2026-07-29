@@ -51,11 +51,19 @@ pip install pillow
 
 ## Usage
 
-Add this workflow. It rebuilds the portrait and commits it when the avatar changes:
+The quickest route is the
+[playground](https://0xharkirat.github.io/dither-portrait/): enter your username and
+press **Add workflow to my profile**. GitHub opens with the file already filled in, so
+you only have to commit it. Committing also runs it once.
+
+To do it by hand, add this workflow. Committing it runs it once, and it rebuilds
+monthly in case the avatar changes:
 
 ```yaml
 name: portrait
 on:
+  push:
+    paths: [.github/workflows/portrait.yml]
   workflow_dispatch:
   schedule:
     - cron: "0 4 1 * *"

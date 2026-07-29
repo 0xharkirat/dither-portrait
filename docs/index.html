@@ -131,11 +131,27 @@
         error diffusion, and the wave field are identical.
       </p>
 
-      <h2>Use these settings</h2>
-      <pre><code id="snippet"></code></pre>
-      <div class="row" style="margin-top:8px">
-        <button class="primary" id="copy">Copy workflow</button>
+      <h2>Set it up</h2>
+      <p class="note" style="margin:0 0 10px">
+        The 1st button opens GitHub with the workflow already filled in, so you only
+        have to press Commit. Committing it also runs it once.
+      </p>
+      <div class="row">
+        <button class="primary" id="addTo">Add workflow to my profile</button>
+        <button id="copyPrompt">Copy prompt for an AI agent</button>
+        <button id="copy">Copy workflow</button>
       </div>
+      <p class="note" id="setupNote"></p>
+      <p class="note" style="margin-top:14px">Then paste this where you want it in your README:</p>
+      <pre><code id="embed">&lt;picture&gt;
+  &lt;source media="(prefers-color-scheme: dark)" srcset="portrait-dark.svg"&gt;
+  &lt;img alt="portrait" src="portrait-light.svg" width="330"&gt;
+&lt;/picture&gt;</code></pre>
+      <div class="row" style="margin-top:8px">
+        <button id="copyEmbed">Copy embed</button>
+      </div>
+      <h2>Workflow</h2>
+      <pre><code id="snippet"></code></pre>
     </div>
   </div>
 </div>
@@ -207,17 +223,30 @@
     snippet();
   }
 
+  /* One source for the step, unindented. Callers add their own indent, because
+   * indenting an already-indented block is what produced invalid YAML before. */
+  function stepLines() {
+    var o = opts();
+    var lines = [
+      "- uses: 0xharkirat/dither-portrait@v1",
+      "  with:",
+      "    username: ${{ github.repository_owner }}",
+    ];
+    if (o.motion !== "water") lines.push("    motion: " + o.motion);
+    if (o.grid !== 120) lines.push('    grid: "' + o.grid + '"');
+    if (o.frames !== 16) lines.push('    frames: "' + o.frames + '"');
+    if (o.duration !== 2.8) lines.push('    duration: "' + o.duration + '"');
+    if (o.invert) lines.push("    invert: true");
+    return lines;
+  }
+
+  function indent(lines, n) {
+    var pad = new Array(n + 1).join(" ");
+    return lines.map(function (l) { return l ? pad + l : l; }).join("\n");
+  }
+
   function snippet() {
-    var o = opts(), extra = "";
-    if (o.motion !== "water") extra += "\n          motion: " + o.motion;
-    if (o.grid !== 120) extra += "\n          grid: \"" + o.grid + "\"";
-    if (o.frames !== 16) extra += "\n          frames: \"" + o.frames + "\"";
-    if (o.duration !== 2.8) extra += "\n          duration: \"" + o.duration + "\"";
-    if (o.invert) extra += "\n          invert: true";
-    $("snippet").textContent =
-      "- uses: 0xharkirat/dither-portrait@v1\n" +
-      "        with:\n" +
-      "          username: ${{ github.repository_owner }}" + extra;
+    $("snippet").textContent = workflowFile();
   }
 
   function useImage(src, label) {
@@ -297,11 +326,97 @@
   $("dlDark").addEventListener("click", function () { download("dark"); });
   $("dlLight").addEventListener("click", function () { download("light"); });
 
-  $("copy").addEventListener("click", function () {
-    navigator.clipboard.writeText($("snippet").textContent).then(function () {
-      $("copy").textContent = "Copied";
-      setTimeout(function () { $("copy").textContent = "Copy workflow"; }, 1400);
-    });
+  /* The full workflow file, not just the step, so it can be committed as-is.
+   * The push trigger means committing it also runs it once, which removes a step. */
+  function workflowFile() {
+    return [
+      "name: portrait",
+      "",
+      "on:",
+      "  push:",
+      "    paths: [.github/workflows/portrait.yml]",
+      "  workflow_dispatch:",
+      "  schedule:",
+      '    - cron: "0 4 1 * *"',
+      "",
+      "permissions:",
+      "  contents: write",
+      "",
+      "jobs:",
+      "  portrait:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - uses: actions/checkout@v4",
+      "",
+      indent(stepLines(), 6),
+      "",
+      "      - name: Commit if it changed",
+      "        run: |",
+      '          git config user.name "github-actions[bot]"',
+      '          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"',
+      "          git add portrait-dark.svg portrait-light.svg",
+      '          git commit -m "chore: refresh portrait" || echo "No change"',
+      "          git push",
+      "",
+    ].join("\n");
+  }
+
+  function flash(btn, label) {
+    var was = btn.textContent;
+    btn.textContent = label;
+    setTimeout(function () { btn.textContent = was; }, 1500);
+  }
+
+  function copy(text, btn) {
+    navigator.clipboard.writeText(text).then(function () { flash(btn, "Copied"); });
+  }
+
+  $("copy").addEventListener("click", function () { copy(workflowFile(), $("copy")); });
+  $("copyEmbed").addEventListener("click", function () {
+    copy($("embed").textContent, $("copyEmbed"));
+  });
+
+  /* GitHub prefills the new-file editor from the query string, so this lands the user
+   * on a commit button rather than a blank file. */
+  $("addTo").addEventListener("click", function () {
+    var user = $("user").value.trim().replace(/^@/, "");
+    if (!user) {
+      $("setupNote").textContent =
+        "Enter your GitHub username above first, so the link knows which repository to open.";
+      $("user").focus();
+      return;
+    }
+    var url = "https://github.com/" + encodeURIComponent(user) + "/" +
+      encodeURIComponent(user) + "/new/main" +
+      "?filename=" + encodeURIComponent(".github/workflows/portrait.yml") +
+      "&value=" + encodeURIComponent(workflowFile());
+    $("setupNote").textContent =
+      "Opens " + user + "/" + user + ". If that repository does not exist yet, create it " +
+      "with the same name as your username to get a profile README.";
+    window.open(url, "_blank", "noopener");
+  });
+
+  $("copyPrompt").addEventListener("click", function () {
+    var user = $("user").value.trim().replace(/^@/, "") || "<your-username>";
+    var prompt = [
+      "Set up the dither-portrait action on my GitHub profile README.",
+      "",
+      "My username is " + user + ", so the profile repository is " + user + "/" + user + ".",
+      "",
+      "1. Create .github/workflows/portrait.yml with exactly this content:",
+      "",
+      workflowFile().replace(/^/gm, "   "),
+      "",
+      "2. Add this to README.md where the portrait should appear:",
+      "",
+      $("embed").textContent.replace(/^/gm, "   "),
+      "",
+      "3. Commit and push. The push trigger runs the workflow once, which commits",
+      "   portrait-dark.svg and portrait-light.svg.",
+      "",
+      "Reference: https://github.com/0xharkirat/dither-portrait",
+    ].join("\n");
+    copy(prompt, $("copyPrompt"));
   });
 
   snippet();
