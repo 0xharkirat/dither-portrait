@@ -5,13 +5,19 @@ whether to use it or wondering why it is built this way.
 
 ## Animating inside GitHub's sandbox
 
-GitHub serves README images through `<img>`. That blocks scripts and external
-fetches, but it does run CSS. So an SVG cannot fetch anything, cannot respond to a
-click, and cannot contain a working link.
+A README cannot contain CSS or JavaScript. GitHub's sanitizer escapes a `<style>`
+block into plain text and strips the `style` attribute, so nothing on the markdown
+side can animate.
 
-What it can do is animate. Each frame is a 1-bit PNG embedded as a `data:` URI, and a
-CSS keyframe cycles them. Every frame sits at `opacity: 0`, and a staggered negative
-`animation-delay` reveals exactly 1 at a time.
+The animation lives in the SVG file instead. An SVG is a document rather than a flat
+image, so it carries its own `<style>` element, and the browser runs that stylesheet
+when it paints the picture. GitHub serves README images through `<img>`, which renders
+the SVG in an isolated document: no scripts, no external fetches, and no working
+links, but its own CSS still applies.
+
+That is the whole trick. Each frame is a 1-bit PNG embedded as a `data:` URI, and a
+CSS keyframe inside the SVG cycles them. Every frame sits at `opacity: 0`, and a
+staggered negative `animation-delay` reveals exactly 1 at a time.
 
 The cut is hard, using `steps(1, end)`. Crossfading 2 dithers blends them into grey
 and loses the point of a 1-bit image.
