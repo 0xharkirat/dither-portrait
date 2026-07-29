@@ -10,7 +10,7 @@ lacks it.
 ## Pick the source
 
 A sweep over 19 well-known GitHub avatars produced these patterns. See the
-[gallery](https://0xharkirat.github.io/dither-portrait/) for the rendered results.
+[gallery](https://0xharkirat.github.io/dither-portrait/gallery.html) for the rendered results.
 
 Prefer, in order:
 
@@ -31,7 +31,8 @@ does the same thing.
 The dark variant inks the bright tones. A photograph on a bright background can
 therefore turn the background into ink and sink the subject into it.
 
-Set `invert` and compare the 2 outputs:
+Toggle it in the [playground](https://0xharkirat.github.io/dither-portrait/)
+to compare, then set it in the workflow:
 
 ```yaml
 - uses: 0xharkirat/dither-portrait@v1

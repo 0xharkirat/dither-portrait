@@ -11,6 +11,9 @@
 
 Turn a photo into an animated dithered SVG for your GitHub profile README.
 
+[Try it on your own photo](https://0xharkirat.github.io/dither-portrait/) without
+installing anything.
+
 ## Table of contents
 
 - [Background](#background)
@@ -127,8 +130,10 @@ Output `files` lists the paths written.
 - [Choose a photo that dithers well](docs/choosing-a-photo.md) covers what to feed it
   and what to change when the result looks wrong.
 - [How it works](docs/how-it-works.md) explains the constraints behind the design.
-- The [gallery](https://0xharkirat.github.io/dither-portrait/) shows the defaults
-  across 19 real avatars.
+- The [playground](https://0xharkirat.github.io/dither-portrait/) dithers a photo in
+  your browser and gives you the matching workflow. Nothing is uploaded.
+- The [gallery](https://0xharkirat.github.io/dither-portrait/gallery.html) shows the
+  defaults across 19 real avatars.
 
 ## Contributing
 
